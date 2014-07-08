@@ -69,7 +69,7 @@ import com.google.common.collect.Sets;
 
 /**
  * An abstract SSH implementation of the {@link AbstractSoftwareProcessDriver}.
- * 
+ *
  * This provides conveniences for clients implementing the install/customize/launch/isRunning/stop lifecycle
  * over SSH.  These conveniences include checking whether software is already installed,
  * creating/using a PID file for some operations, and reading ssh-specific config from the entity
@@ -85,24 +85,24 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     private volatile String runDir;
     private volatile String expandedInstallDir;
     private final Object installDirSetupMutex = new Object();
-
+    
     protected volatile DownloadResolver resolver;
     
     /** include this flag in newScript creation to prevent entity-level flags from being included;
      * any SSH-specific flags passed to newScript override flags from the entity,
      * and flags from the entity override flags on the location
      * (where there aren't conflicts, flags from all three are used however) */
-    public static final String IGNORE_ENTITY_SSH_FLAGS = SshEffectorTasks.IGNORE_ENTITY_SSH_FLAGS.getName(); 
+    public static final String IGNORE_ENTITY_SSH_FLAGS = SshEffectorTasks.IGNORE_ENTITY_SSH_FLAGS.getName();
 
     public AbstractSoftwareProcessSshDriver(EntityLocal entity, SshMachineLocation machine) {
         super(entity, machine);
-        
+
         // FIXME this assumes we own the location, and causes warnings about configuring location after deployment;
         // better would be to wrap the ssh-execution-provider to supply these flags
         if (getSshFlags()!=null && !getSshFlags().isEmpty())
             machine.configure(getSshFlags());
-        
-        // ensure these are set using the routines below, not a global ConfigToAttributes.apply() 
+
+        // ensure these are set using the routines below, not a global ConfigToAttributes.apply()
         getInstallDir();
         getRunDir();
     }
@@ -130,10 +130,10 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     public String getDownloadFileSuffix() {
         return "tar.gz";
     }
-    
+
     /**
      * @deprecated since 0.5.0; instead rely on {@link DownloadResolverManager} to include local-repo, such as:
-     * 
+     *
      * <pre>
      * {@code
      * DownloadResolver resolver = Entities.newDownloader(this);
@@ -144,20 +144,20 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     protected String getEntityVersionLabel() {
         return getEntityVersionLabel("_");
     }
-    
+
     /**
      * @deprecated since 0.5.0; instead rely on {@link DownloadResolverManager} to include local-repo
      */
     protected String getEntityVersionLabel(String separator) {
-        return elvis(entity.getEntityType().getSimpleName(),  
+        return elvis(entity.getEntityType().getSimpleName(),
                 entity.getClass().getName())+(getVersion() != null ? separator+getVersion() : "");
     }
-    
+
     protected void setInstallDir(String installDir) {
         this.installDir = installDir;
         entity.setAttribute(SoftwareProcess.INSTALL_DIR, installDir);
     }
-    
+
     public String getInstallDir() {
         if (installDir != null) return installDir;
 
@@ -189,10 +189,10 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
             return installDir;
         }
     }
-    
+
     protected void setInstallLabel() {
-        if (getEntity().getConfigRaw(SoftwareProcess.INSTALL_UNIQUE_LABEL, false).isPresentAndNonNull()) return; 
-        getEntity().setConfig(SoftwareProcess.INSTALL_UNIQUE_LABEL, 
+        if (getEntity().getConfigRaw(SoftwareProcess.INSTALL_UNIQUE_LABEL, true).isPresent()) return;
+        getEntity().setConfig(SoftwareProcess.INSTALL_UNIQUE_LABEL,
             getEntity().getEntityType().getSimpleName()+
             (Strings.isNonBlank(getVersion()) ? "_"+getVersion() : "")+
             (Strings.isNonBlank(getInstallLabelExtraSalt()) ? "_"+getInstallLabelExtraSalt() : "") );
@@ -213,10 +213,10 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
         this.runDir = runDir;
         entity.setAttribute(SoftwareProcess.RUN_DIR, runDir);
     }
-    
+
     public String getRunDir() {
         if (runDir != null) return runDir;
-        
+
         String existingVal = getEntity().getAttribute(SoftwareProcess.RUN_DIR);
         if (Strings.isNonBlank(existingVal)) { // e.g. on rebind
             runDir = existingVal;
@@ -245,14 +245,14 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
         if (Strings.isNonBlank(oldVal) && !oldVal.equals(val)) {
             log.info("Resetting expandedInstallDir (to "+val+" from "+oldVal+") for "+getEntity());
         }
-        
+
         expandedInstallDir = val;
         getEntity().setAttribute(SoftwareProcess.EXPANDED_INSTALL_DIR, val);
     }
-    
+
     public String getExpandedInstallDir() {
         if (expandedInstallDir != null) return expandedInstallDir;
-        
+
         String existingVal = getEntity().getAttribute(SoftwareProcess.EXPANDED_INSTALL_DIR);
         if (Strings.isNonBlank(existingVal)) { // e.g. on rebind
             expandedInstallDir = existingVal;
@@ -469,6 +469,7 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
      * @return The exit code of the SSH command run.
      */
     public int copyTemplate(String template, String target, boolean createParent, Map<String, ?> extraSubstitutions) {
+
         String data = processTemplate(template, extraSubstitutions);
         return copyResource(MutableMap.<Object,Object>of(), new StringReader(data), target, createParent);
     }
@@ -499,7 +500,7 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     public int copyResource(Map sshFlags, String source, String target) {
         return copyResource(sshFlags, source, target, false);
     }
-    
+
     /**
      * @param sshFlags Extra flags to be used when making an SSH connection to the entity's machine.
      *                 If the map contains the key {@link #IGNORE_ENTITY_SSH_FLAGS} then only the
@@ -559,13 +560,13 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     public int copyResource(InputStream source, String target) {
         return copyResource(MutableMap.of(), source, target, false);
     }
-    
+
     /**
      * Input stream will be closed automatically.
      * <p>
      * If using {@link SshjTool} usage, consider using {@link KnownSizeInputStream} to avoid having
      * to write out stream once to find its size!  
-     * 
+     *
      * @see #copyResource(Map, String, String) for parameter descriptions.
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -824,8 +825,8 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
                     );
                 } else {
                     s.footer.prepend(
-                            "test -f "+pidFile+" || exit 1", 
-                            "ps -p $(cat "+pidFile+") || exit 1" 
+                            "test -f "+pidFile+" || exit 1",
+                            "ps -p $(cat "+pidFile+") || exit 1"
                     );
                 }
                 // no pid, not running; no process; can't restart, 1 is not running
@@ -845,5 +846,73 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
 
     @Override
     public void setup() { }
+
+
+    public static final String  GIT_EXTENSION = ".git";
+    public final static String HTTPS_PREFIX="https://";
+
+
+    public int copyUsingProtocol(String url, String deployTargetDir){
+        int result =0;
+        if(isHttpsGitURL(url)){
+            log.info("Git. Es una direccion git {} {}", new Object[]{this, url});
+            result = copyUsingProtocolGitHttps(url, deployTargetDir);
+        }
+        return result;
+    }
+
+    private  boolean isHttpsGitURL(String url){
+        boolean isHttpsGitURL;
+        checkNotNull(url, "git URL is NULL.");
+        isHttpsGitURL=checkGitExtension(url)&&checkHttpsPrefix(url);
+        return isHttpsGitURL;
+    }
+
+    private  boolean checkGitExtension(String url){
+        boolean hasGitExtension=false;
+        int lastPoint =url.lastIndexOf(".");
+        if(lastPoint!=-1)
+            hasGitExtension=url.substring(lastPoint).toLowerCase().equals(GIT_EXTENSION);
+        return hasGitExtension;
+    }
+
+    private  boolean checkHttpsPrefix(String url){
+        return url.toLowerCase().startsWith(HTTPS_PREFIX);
+    }
+
+    public int copyUsingProtocolGitHttps(String url, String targetDir){
+        checkAndInstallGit();
+        List<String> commands = ImmutableList.<String>builder()
+                .add(String.format("git clone %s %s", url, targetDir))
+                .build();
+        log.info("Coping git repository url: {} to {}", new Object[]{url, targetDir});
+        int result= newScript(CUSTOMIZING)
+                .body.append(commands)
+                .execute();
+        return result;
+    }
+
+    private void checkAndInstallGit(){
+        int gitInstalled= getMachine().execCommands("checkGitVersion", ImmutableList.of("git --version"));
+        log.info("Git is installed {} {} ", new Object[]{gitInstalled==0, this});
+        if (gitInstalled!=0)
+            installGit();
+    }
+
+    //TODO modify this script using new scrip functionality
+    private int installGit(){
+        int resultOfCommand;
+        log.info("Installing git {}", new Object[]{this});
+//
+//        List<String> commands= ImmutableList.<String>builder().add(BashCommands.
+//                installPackage(MutableMap.of("apt", "git"), null)).build();
+//        resultOfCommand=newScript(INSTALLING).body.append(commands).execute();
+        resultOfCommand = getMachine().execCommands("install Git", ImmutableList.of("sudo apt-get -y install git"));
+        if(resultOfCommand!=0)
+            log.warn("Installing problem installing result {}", resultOfCommand);
+        return resultOfCommand;
+    }
+
+
 
 }
