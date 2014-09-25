@@ -789,6 +789,7 @@
                      <version>${surefire.version}</version>
                      <configuration>
                          <argLine>-Xms768m -Xmx768m -XX:MaxPermSize=256m -verbose:gc</argLine>
+                         <skipTests>true</skipTests>
                     </configuration>
                 </plugin>
                 <plugin>
