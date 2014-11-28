@@ -855,7 +855,7 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     public int copyUsingProtocol(String url, String deployTargetDir){
         int result =0;
         if(isHttpsGitURL(url)){
-            log.info("Git: it is a git repo {} {}", new Object[]{this, url});
+            log.info("The URL it is a git repository: {}", new Object[]{url});
             result = copyUsingProtocolGitHttps(url, deployTargetDir);
         }
         return result;
@@ -863,7 +863,7 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
 
     private  boolean isHttpsGitURL(String url){
         boolean isHttpsGitURL;
-        if(Strings.isNonBlank(url)) {
+        if(Strings.isBlank(url)) {
             log.info("git URL is null.");
         }
         isHttpsGitURL=checkGitExtension(url)&&checkHttpsPrefix(url);
