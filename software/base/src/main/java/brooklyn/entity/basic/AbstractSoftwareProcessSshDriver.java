@@ -191,11 +191,11 @@ public abstract class AbstractSoftwareProcessSshDriver extends AbstractSoftwareP
     }
 
     protected void setInstallLabel() {
-        if (getEntity().getConfigRaw(SoftwareProcess.INSTALL_UNIQUE_LABEL, true).isPresent()) return;
-        getEntity().setConfig(SoftwareProcess.INSTALL_UNIQUE_LABEL,
-            getEntity().getEntityType().getSimpleName()+
-            (Strings.isNonBlank(getVersion()) ? "_"+getVersion() : "")+
-            (Strings.isNonBlank(getInstallLabelExtraSalt()) ? "_"+getInstallLabelExtraSalt() : "") );
+            if (getEntity().getConfigRaw(SoftwareProcess.INSTALL_UNIQUE_LABEL, false).isPresentAndNonNull()) return;
+            getEntity().setConfig(SoftwareProcess.INSTALL_UNIQUE_LABEL,
+                getEntity().getEntityType().getSimpleName()+
+                (Strings.isNonBlank(getVersion()) ? "_"+getVersion() : "")+
+                (Strings.isNonBlank(getInstallLabelExtraSalt()) ? "_"+getInstallLabelExtraSalt() : "") );
     }
 
     /** allows subclasses to return extra salt (ie unique hash) 

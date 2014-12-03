@@ -48,9 +48,6 @@ import java.util.Set;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
-/**
- * Created by Jose on 18/07/2014.
- */
 public class ApacheServerIntegrationTest {
 
     private static final Logger log = LoggerFactory.getLogger(ApacheServerIntegrationTest.class);
@@ -113,17 +110,13 @@ public class ApacheServerIntegrationTest {
         app.start(ImmutableList.of(loc));
 
         String httpUrl = "http://"+server.getAttribute(ApacheServer.HOSTNAME)+":"+server.getAttribute(ApacheServer.HTTP_PORT)+"/";
-//        log.info("httpURL - VALUE generate by composition: --> " + httpUrl);
-//        log.info("ROOT_URL: --> " + server.getAttribute(ApacheServer.ROOT_URL).toLowerCase());
         assertEquals(server.getAttribute(ApacheServer.ROOT_URL).toLowerCase(), httpUrl.toLowerCase());
         assertEquals(server.getAttribute(PhpWebAppSoftwareProcess.DEPLOYED_PHP_APPS).size(), 1);
 
         Asserts.succeedsEventually(new Runnable() {
             public void run() {
-                assertNotNull(server.getAttribute(ApacheServer.TOTAL_ACCESSES));
                 assertNotNull(server.getAttribute(ApacheServer.TOTAL_KBYTE));
                 assertNotNull(server.getAttribute(ApacheServer.CPU_LOAD));
-                assertNotNull(server.getAttribute(ApacheServer.UP_TIME));
                 assertNotNull(server.getAttribute(ApacheServer.REQUEST_PER_SEC));
                 assertNotNull(server.getAttribute(ApacheServer.BYTES_PER_SEC));
                 assertNotNull(server.getAttribute(ApacheServer.BYTES_PER_REQ));
@@ -142,17 +135,13 @@ public class ApacheServerIntegrationTest {
         app.start(ImmutableList.of(loc));
 
         String httpUrl = "http://"+server.getAttribute(ApacheServer.HOSTNAME)+":"+server.getAttribute(ApacheServer.HTTP_PORT)+"/";
-//        log.info("httpURL - VALUE generate by composition: --> " + httpUrl);
-//        log.info("ROOT_URL: --> " + server.getAttribute(ApacheServer.ROOT_URL).toLowerCase());
         assertEquals(server.getAttribute(ApacheServer.ROOT_URL).toLowerCase(), httpUrl.toLowerCase());
         assertEquals(server.getAttribute(PhpWebAppSoftwareProcess.DEPLOYED_PHP_APPS).size(), 1);
 
         Asserts.succeedsEventually(new Runnable() {
             public void run() {
-                assertNotNull(server.getAttribute(ApacheServer.TOTAL_ACCESSES));
                 assertNotNull(server.getAttribute(ApacheServer.TOTAL_KBYTE));
                 assertNotNull(server.getAttribute(ApacheServer.CPU_LOAD));
-                assertNotNull(server.getAttribute(ApacheServer.UP_TIME));
                 assertNotNull(server.getAttribute(ApacheServer.REQUEST_PER_SEC));
                 assertNotNull(server.getAttribute(ApacheServer.BYTES_PER_SEC));
                 assertNotNull(server.getAttribute(ApacheServer.BYTES_PER_REQ));
