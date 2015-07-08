@@ -16,19 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.software;
+package brooklyn.location.paas;
 
-import brooklyn.location.MachineProvisioningLocation;
-import brooklyn.util.config.ConfigBag;
+import brooklyn.config.ConfigKey;
+import brooklyn.entity.basic.ConfigKeys;
+import brooklyn.util.flags.SetFromFlag;
 
-import com.google.common.annotations.Beta;
+public interface PaasLocationConfig {
 
-/** Marker interface for an entity which supplies custom machine provisioning flags;
- * used e.g. in {@link brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks}.
- * @since 0.6.0 */
-@Beta
-public interface ProvidesProvisioningFlags {
+    @SetFromFlag("profile.instances")
+    ConfigKey<Integer> REQUIRED_INSTANCES = ConfigKeys.newIntegerConfigKey(
+            "profile.instances", "Required instances to deploy the application", 1);
 
-    public ConfigBag obtainProvisioningFlags(MachineProvisioningLocation<?> location);
-    
+    @SetFromFlag("profile.instances")
+    ConfigKey<Integer> REQUIRED_MEMORY = ConfigKeys.newIntegerConfigKey(
+            "profile.memory", "Required memory to deploy the application (MB)", 512);
+
+    @SetFromFlag("profile.instances")
+    ConfigKey<Integer> REQUIRED_DISK = ConfigKeys.newIntegerConfigKey(
+            "profile.disk", "Required disk to deploy the application (MB)", 1024);
+
+
 }

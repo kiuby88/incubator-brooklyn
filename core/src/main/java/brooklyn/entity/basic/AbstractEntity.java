@@ -976,7 +976,7 @@ public abstract class AbstractEntity extends AbstractBrooklynObject implements E
      */
     @Beta
     // TODO revert to private when config() is reverted to return ConfigurationSupportInternal
-    protected class BasicConfigurationSupport implements ConfigurationSupportInternal {
+    public class BasicConfigurationSupport implements ConfigurationSupportInternal {
 
         @Override
         public <T> T get(ConfigKey<T> key) {

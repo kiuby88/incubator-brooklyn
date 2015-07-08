@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.software;
+package brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier;
 
-import brooklyn.location.MachineProvisioningLocation;
-import brooklyn.util.config.ConfigBag;
 
-import com.google.common.annotations.Beta;
+import brooklyn.entity.basic.AbstractEntity;
+import brooklyn.location.Location;
 
-/** Marker interface for an entity which supplies custom machine provisioning flags;
- * used e.g. in {@link brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks}.
- * @since 0.6.0 */
-@Beta
-public interface ProvidesProvisioningFlags {
+import java.util.Collection;
+import java.util.Map;
 
-    public ConfigBag obtainProvisioningFlags(MachineProvisioningLocation<?> location);
-    
+public interface LocationFlagSupplier {
+
+    public AbstractEntity entity();
+
+    public Map<String, Object> obtainFlagsForLocation(Location location);
+    public Collection<Integer> getRequiredOpenPorts();
+
 }

@@ -33,7 +33,7 @@ import com.google.common.reflect.TypeToken;
 
 import brooklyn.config.ConfigKey;
 import brooklyn.entity.Entity;
-import brooklyn.entity.software.MachineLifecycleEffectorTasks;
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import brooklyn.entity.trait.StartableMethods;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.MachineProvisioningLocation;

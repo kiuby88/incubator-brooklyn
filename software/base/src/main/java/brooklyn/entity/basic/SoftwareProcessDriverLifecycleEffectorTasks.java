@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import brooklyn.entity.basic.SoftwareProcess.ChildStartableMode;
 import brooklyn.entity.basic.SoftwareProcess.RestartSoftwareParameters;
 import brooklyn.entity.basic.SoftwareProcess.RestartSoftwareParameters.RestartMachineMode;
-import brooklyn.entity.software.MachineLifecycleEffectorTasks;
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import brooklyn.entity.trait.StartableMethods;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.MachineProvisioningLocation;
@@ -97,7 +97,7 @@ public class SoftwareProcessDriverLifecycleEffectorTasks extends MachineLifecycl
     
     @Override
     protected Map<String, Object> obtainProvisioningFlags(final MachineProvisioningLocation<?> location) {
-        return entity().obtainProvisioningFlags(location);
+        return entity().obtainFlagsForLocation(location);
     }
      
     @Override

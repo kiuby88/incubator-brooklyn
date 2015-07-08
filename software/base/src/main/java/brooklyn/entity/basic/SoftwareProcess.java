@@ -18,9 +18,6 @@
  */
 package brooklyn.entity.basic;
 
-import java.util.Collection;
-import java.util.Map;
-
 import brooklyn.config.ConfigKey;
 import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Lifecycle.Transition;
@@ -29,14 +26,16 @@ import brooklyn.event.AttributeSensor;
 import brooklyn.event.basic.AttributeSensorAndConfigKey;
 import brooklyn.event.basic.MapConfigKey;
 import brooklyn.event.basic.Sensors;
-import brooklyn.location.MachineProvisioningLocation;
+import brooklyn.location.Location;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.flags.SetFromFlag;
 import brooklyn.util.time.Duration;
-
 import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.TypeToken;
+
+import java.util.Collection;
+import java.util.Map;
 
 public interface SoftwareProcess extends Entity, Startable {
 
@@ -261,15 +260,15 @@ public interface SoftwareProcess extends Entity, Startable {
     ConfigKey<ChildStartableMode> CHILDREN_STARTABLE_MODE = ConfigKeys.newConfigKey(ChildStartableMode.class, "children.startable.mode");
 
     @SuppressWarnings("rawtypes")
-    AttributeSensor<MachineProvisioningLocation> PROVISIONING_LOCATION = Sensors.newSensor(
-            MachineProvisioningLocation.class, "softwareservice.provisioningLocation", "Location used to provision a machine where this is running");
+    AttributeSensor<Location> PROVISIONING_LOCATION = Sensors.newSensor(
+            Location.class, "softwareservice.provisioningLocation", "Location used to provision a entity where this is running");
 
-    AttributeSensor<Boolean> SERVICE_PROCESS_IS_RUNNING = Sensors.newBooleanSensor("service.process.isRunning", 
+    AttributeSensor<Boolean> SERVICE_PROCESS_IS_RUNNING = Sensors.newBooleanSensor("service.process.isRunning",
             "Whether the process for the service is confirmed as running");
     
     AttributeSensor<Lifecycle> SERVICE_STATE_ACTUAL = Attributes.SERVICE_STATE_ACTUAL;
     AttributeSensor<Transition> SERVICE_STATE_EXPECTED = Attributes.SERVICE_STATE_EXPECTED;
- 
+
     AttributeSensor<String> PID_FILE = Sensors.newStringSensor("softwareprocess.pid.file", "PID file");
 
     @Beta

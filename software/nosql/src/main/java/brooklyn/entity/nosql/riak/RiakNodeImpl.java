@@ -36,7 +36,7 @@ import brooklyn.event.basic.AttributeSensorAndConfigKey;
 import brooklyn.event.feed.http.HttpFeed;
 import brooklyn.event.feed.http.HttpPollConfig;
 import brooklyn.event.feed.http.HttpValueFunctions;
-import brooklyn.location.MachineProvisioningLocation;
+import brooklyn.location.Location;
 import brooklyn.location.access.BrooklynAccessUtils;
 import brooklyn.location.cloud.CloudLocationConfig;
 import brooklyn.util.collections.MutableSet;
@@ -91,8 +91,8 @@ public class RiakNodeImpl extends SoftwareProcessImpl implements RiakNode {
     }
 
     @Override
-    protected Map<String, Object> obtainProvisioningFlags(@SuppressWarnings("rawtypes") MachineProvisioningLocation location) {
-        ConfigBag result = ConfigBag.newInstance(super.obtainProvisioningFlags(location));
+    protected Map<String, Object> obtainFlagsForLocation(@SuppressWarnings("rawtypes") Location location) {
+        ConfigBag result = ConfigBag.newInstance(super.obtainFlagsForLocation(location));
         result.configure(CloudLocationConfig.OS_64_BIT, true);
         return result.getAllConfig();
     }

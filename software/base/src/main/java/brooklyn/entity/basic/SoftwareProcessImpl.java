@@ -18,10 +18,17 @@
  */
 package brooklyn.entity.basic;
 
-import brooklyn.util.flags.TypeCoercions;
+import brooklyn.entity.basic.behaviour.softwareprocesss.SoftwareProcessImplBehaviourFactory;
+import brooklyn.location.basic.Locations;
+import brooklyn.entity.basic.behaviour.softwareprocesss.SoftwareProcessImplPaasBehaviourFactory;
+import brooklyn.entity.basic.behaviour.softwareprocesss.SoftwareProcessImplMachineBehaviourFactory;
+import brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier.LocationFlagSupplier;
+import brooklyn.entity.software.lifecycle.LifecycleEffectorTasks;
+import brooklyn.location.basic.Locations;
 import brooklyn.util.guava.Maybe;
 import groovy.time.TimeDuration;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -67,8 +74,12 @@ import brooklyn.util.time.Time;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+
+import javax.annotation.Nullable;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
+
+import javax.annotation.Nullable;
 
 /**
  * An {@link Entity} representing a piece of software which can be installed, run, and controlled.
@@ -85,8 +96,10 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     /** @see #connectServiceUpIsRunning() */
     private volatile FunctionFeed serviceProcessIsRunning;
 
-    private static final SoftwareProcessDriverLifecycleEffectorTasks LIFECYCLE_TASKS =
-            new SoftwareProcessDriverLifecycleEffectorTasks();
+    private LifecycleEffectorTasks LIFECYCLE_TASKS;
+    private SoftwareProcessImplBehaviourFactory fabric;
+
+    private LocationFlagSupplier locationFlagSupplier;
 
     protected boolean connectedSensors = false;
     
@@ -108,7 +121,7 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         setAttribute(PROVISIONING_LOCATION, val);
     }
     
-    protected MachineProvisioningLocation getProvisioningLocation() {
+    protected Location getProvisioningLocation() {
         return getAttribute(PROVISIONING_LOCATION);
     }
     
@@ -129,7 +142,7 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     @Override
     public void init() {
         super.init();
-        LIFECYCLE_TASKS.attachLifecycleEffectors(this);
+        //LIFECYCLE_TASKS.attachLifecycleEffectors(this);
     }
     
     @Override
@@ -138,6 +151,10 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         ServiceNotUpLogic.updateNotUpIndicator(this, SERVICE_PROCESS_IS_RUNNING, "No information yet on whether this service is running");
         // add an indicator above so that if is_running comes through, the map is cleared and an update is guaranteed
         addEnricher(EnricherSpec.create(UpdatingNotUpFromServiceProcessIsRunning.class).uniqueTag("service-process-is-running-updating-not-up"));
+    }
+
+    protected LifecycleEffectorTasks getLifecycleEffectorTasks(){
+        return LIFECYCLE_TASKS;
     }
     
     /** subscribes to SERVICE_PROCESS_IS_RUNNING and SERVICE_UP; the latter has no effect if the former is set,
@@ -420,64 +437,16 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
 
     /** @deprecated since 0.6.0 use/override method in {@link SoftwareProcessDriverLifecycleEffectorTasks} */
     protected final void callStartHooks() {}
-    
-    protected Map<String,Object> obtainProvisioningFlags(MachineProvisioningLocation location) {
-        ConfigBag result = ConfigBag.newInstance(location.getProvisioningFlags(ImmutableList.of(getClass().getName())));
-        result.putAll(getConfig(PROVISIONING_PROPERTIES));
-        if (result.get(CloudLocationConfig.INBOUND_PORTS) == null) {
-            Collection<Integer> ports = getRequiredOpenPorts();
-            Object requiredPorts = result.get(CloudLocationConfig.ADDITIONAL_INBOUND_PORTS);
-            if (requiredPorts instanceof Integer) {
-                ports.add((Integer) requiredPorts);
-            } else if (requiredPorts instanceof Iterable) {
-                for (Object o : (Iterable<?>) requiredPorts) {
-                    if (o instanceof Integer) ports.add((Integer) o);
-                }
-            }
-            if (ports != null && ports.size() > 0) result.put(CloudLocationConfig.INBOUND_PORTS, ports);
-        }
-        result.put(LocationConfigKeys.CALLER_CONTEXT, this);
-        return result.getAllConfigMutable();
+
+    //Fixme this method should to be renamed because it is focus on IaaS and PaaS
+    protected Map<String,Object> obtainFlagsForLocation(Location location) {
+        return locationFlagSupplier.obtainFlagsForLocation(location);
     }
 
-    /** returns the ports that this entity wants to use;
-     * default implementation returns {@link SoftwareProcess#REQUIRED_OPEN_LOGIN_PORTS} plus first value 
-     * for each {@link PortAttributeSensorAndConfigKey} config key {@link PortRange}
-     * plus any ports defined with a config keys ending in {@code .port}.
-     */
-    protected Collection<Integer> getRequiredOpenPorts() {
-        Set<Integer> ports = MutableSet.copyOf(getConfig(REQUIRED_OPEN_LOGIN_PORTS));
-        Map<ConfigKey<?>, ?> allConfig = config().getBag().getAllConfigAsConfigKeyMap();
-        Set<ConfigKey<?>> configKeys = Sets.newHashSet(allConfig.keySet());
-        configKeys.addAll(getEntityType().getConfigKeys());
-
-        /* TODO: This won't work if there's a port collision, which will cause the corresponding port attribute
-           to be incremented until a free port is found. In that case the entity will use the free port, but the
-           firewall will open the initial port instead. Mostly a problem for SameServerEntity, localhost location.
-         */
-        for (ConfigKey<?> k: configKeys) {
-            Object value;
-            if (PortRange.class.isAssignableFrom(k.getType()) || k.getName().matches(".*\\.port")) {
-                value = config().get(k);
-            } else {
-                // config().get() will cause this to block until all config has been resolved
-                // using config().getRaw(k) means that we won't be able to use e.g. 'http.port: $brooklyn:component("x").attributeWhenReady("foo")'
-                // but that's unlikely to be used
-                Maybe<Object> maybeValue = config().getRaw(k);
-                value = maybeValue.isPresent() ? maybeValue.get() : null;
-            }
-
-            Maybe<PortRange> maybePortRange = TypeCoercions.tryCoerce(value, new TypeToken<PortRange>() {});
-
-            if (maybePortRange.isPresentAndNonNull()) {
-                PortRange p = maybePortRange.get();
-                if (p != null && !p.isEmpty()) ports.add(p.iterator().next());
-            }
-        }        
-        
-        log.debug("getRequiredOpenPorts detected default {} for {}", ports, this);
-        return ports;
+    protected Collection<Integer> getRequiredOpenPorts(){
+        return locationFlagSupplier.getRequiredOpenPorts();
     }
+
 
     /** @deprecated since 0.6.0 use {@link Machines#findSubnetHostname(Entity)} */ @Deprecated
     public String getLocalHostname() {
@@ -562,6 +531,13 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
      */
     @Override
     public final void start(final Collection<? extends Location> locations) {
+
+
+        Location targetLocation = getLocation(locations);
+
+        initFabricAndParameters(targetLocation);
+        LIFECYCLE_TASKS.attachLifecycleEffectors(this);
+
         if (DynamicTasks.getTaskQueuingContext() != null) {
             doStart(locations);
         } else {
@@ -569,6 +545,93 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
             Entities.submit(this, task).getUnchecked();
         }
     }
+
+    /**
+     *
+     * @param locations
+     */
+    private void attachEffectorsDependingOnLocations(Collection<? extends Location> locations){
+
+        Location usedLocation= getLocation(locations);
+        if((usedLocation instanceof MachineLocation)
+                ||(usedLocation instanceof MachineProvisioningLocation)){
+            SoftwareProcessDriverLifecycleEffectorTasks LIFECYCLE_TASKS_TMP =
+                new SoftwareProcessDriverLifecycleEffectorTasks();
+            LIFECYCLE_TASKS_TMP.attachLifecycleEffectors(this);
+        }
+        else{
+
+        }
+    }
+
+    /**
+     * This method was copied from {@linkMachineLifecycleEffectorTasks}
+     * @param locations
+     * @return
+     */
+    protected Location getLocation(@Nullable Collection<? extends Location> locations) {
+        if (locations==null || locations.isEmpty()) locations = this.getLocations();
+        if (locations.isEmpty()) {
+            MachineProvisioningLocation<?> provisioner = this.getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
+            if (provisioner!=null) locations = Arrays.<Location>asList(provisioner);
+        }
+        locations = Locations.getLocationsCheckingAncestors(locations, this);
+
+        Maybe<MachineLocation> ml = Locations.findUniqueMachineLocation(locations);
+        if (ml.isPresent()) return ml.get();
+
+        if (locations.isEmpty())
+            throw new IllegalArgumentException("No locations specified when starting "+this);
+        if (locations.size() != 1 || Iterables.getOnlyElement(locations)==null)
+            throw new IllegalArgumentException("Ambiguous locations detected when starting "+this+": "+locations);
+        return Iterables.getOnlyElement(locations);
+    }
+
+    /**
+     * Adding behaviour to the entity depending on the {@link Location}
+     * @param location
+     */
+    private void initFabricAndParameters(Location location){
+        if(location instanceof MachineProvisioningLocation){
+            fabric =  new SoftwareProcessImplMachineBehaviourFactory(this);
+        } else {
+            fabric =  new SoftwareProcessImplPaasBehaviourFactory(this);
+        }
+
+        LIFECYCLE_TASKS = fabric.getLifecycleEffectorTasks();
+        locationFlagSupplier= fabric.getLocationFlagSupplier();
+    }
+
+    //Fixme this method is duplicated on MachineLifecycleEffectorTasks
+    protected Location getLocation(@Nullable Collection<? extends Location> locations) {
+        if (locations==null || locations.isEmpty()) locations = getLocations();
+        if (locations.isEmpty()) {
+            MachineProvisioningLocation<?> provisioner = (MachineProvisioningLocation)
+                    getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
+            if (provisioner!=null) locations = Arrays.<Location>asList(provisioner);
+        }
+        locations = Locations.getLocationsCheckingAncestors(locations, this);
+
+        Maybe<MachineLocation> ml = Locations.findUniqueMachineLocation(locations);
+        if (ml.isPresent()) return ml.get();
+
+        if (locations.isEmpty())
+            throw new IllegalArgumentException("No locations specified when starting "+this);
+        if (locations.size() != 1 || Iterables.getOnlyElement(locations)==null)
+            throw new IllegalArgumentException("Ambiguous locations detected when starting " +
+                    this + ": "+locations);
+        return Iterables.getOnlyElement(locations);
+    }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * If custom behaviour is required by sub-classes, consider overriding {@link #doStop()}.

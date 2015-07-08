@@ -116,7 +116,6 @@
                                 <descriptor>src/main/config/build-distribution.xml</descriptor>
                             </descriptors>
                             <finalName>brooklyn</finalName>
-                            <includeBaseDirectory>false</includeBaseDirectory>
                             <formats>
                                 <format>dir</format>
                             </formats>

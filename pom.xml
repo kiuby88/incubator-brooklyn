@@ -1285,6 +1285,7 @@
             <activation> <property><name> !brooklyn.explicitModules </name></property> </activation>
             <modules>
                 <module>locations/jclouds</module>
+                <module>locations/cloudfoundry</module>
             </modules>
         </profile>
         <profile>

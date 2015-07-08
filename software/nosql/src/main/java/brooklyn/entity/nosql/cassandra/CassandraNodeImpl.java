@@ -124,7 +124,7 @@ public class CassandraNodeImpl extends SoftwareProcessImpl implements CassandraN
         synchronized (detectedCloudSensors) {
             if (detectedCloudSensors.get()) return;
 
-            MachineProvisioningLocation<?> loc = getProvisioningLocation();
+            MachineProvisioningLocation<?> loc = (MachineProvisioningLocation) getProvisioningLocation();
             if (loc != null) {
                 try {
                     Method method = loc.getClass().getMethod("getProvider");
@@ -343,7 +343,8 @@ public class CassandraNodeImpl extends SoftwareProcessImpl implements CassandraN
         String name = getAttribute(CassandraNode.DATACENTER_NAME);
         if (name == null) {
             MachineLocation machine = getMachineOrNull();
-            MachineProvisioningLocation<?> provisioningLocation = getProvisioningLocation();
+            MachineProvisioningLocation<?> provisioningLocation =
+                    (MachineProvisioningLocation) getProvisioningLocation();
             if (machine != null) {
                 name = machine.getConfig(CloudLocationConfig.CLOUD_REGION_ID);
             }
@@ -362,7 +363,8 @@ public class CassandraNodeImpl extends SoftwareProcessImpl implements CassandraN
         String name = getAttribute(CassandraNode.RACK_NAME);
         if (name == null) {
             MachineLocation machine = getMachineOrNull();
-            MachineProvisioningLocation<?> provisioningLocation = getProvisioningLocation();
+            MachineProvisioningLocation<?> provisioningLocation =
+                    (MachineProvisioningLocation) getProvisioningLocation();
             if (machine != null) {
                 name = machine.getConfig(CloudLocationConfig.CLOUD_AVAILABILITY_ZONE_ID);
             }
