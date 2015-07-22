@@ -102,6 +102,9 @@ import com.google.common.collect.Iterables;
  * </ul>
  * Note methods at this level typically look after the {@link Attributes#SERVICE_STATE} sensor.
  *
+ * As the class name specifies, this class supposes that the location over the entity is run is a
+ * machine.
+ *
  * @since 0.6.0
  */
 @Beta
@@ -213,7 +216,8 @@ public abstract class MachineLifecycleEffectorTasks {
     protected Location getLocation(@Nullable Collection<? extends Location> locations) {
         if (locations==null || locations.isEmpty()) locations = entity().getLocations();
         if (locations.isEmpty()) {
-            MachineProvisioningLocation<?> provisioner = entity().getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
+            MachineProvisioningLocation<?> provisioner = (MachineProvisioningLocation)
+                    entity().getAttribute(SoftwareProcess.LOCATION);
             if (provisioner!=null) locations = Arrays.<Location>asList(provisioner);
         }
         locations = Locations.getLocationsCheckingAncestors(locations, entity());
@@ -271,7 +275,7 @@ public abstract class MachineLifecycleEffectorTasks {
      * and returns that machine. The task can be used as a supplier to subsequent methods.
      */
     protected Task<MachineLocation> provisionAsync(final MachineProvisioningLocation<?> location) {
-        return DynamicTasks.queue(Tasks.<MachineLocation>builder().name("provisioning ("+location.getDisplayName()+")").body(
+        return DynamicTasks.queue(Tasks.<MachineLocation>builder().name("provisioning (" +location.getDisplayName()+")").body(
                 new Callable<MachineLocation>() {
                     public MachineLocation call() throws Exception {
                         // Blocks if a latch was configured.
@@ -279,7 +283,7 @@ public abstract class MachineLifecycleEffectorTasks {
                         final Map<String,Object> flags = obtainProvisioningFlags(location);
                         if (!(location instanceof LocalhostMachineProvisioningLocation))
                             log.info("Starting {}, obtaining a new location instance in {} with ports {}", new Object[] {entity(), location, flags.get("inboundPorts")});
-                        entity().setAttribute(SoftwareProcess.PROVISIONING_LOCATION, location);
+                        entity().setAttribute(SoftwareProcess.LOCATION, location);
                         MachineLocation machine;
                         try {
                             machine = Tasks.withBlockingDetails("Provisioning machine in "+location, new Callable<MachineLocation>() {
@@ -730,7 +734,8 @@ public abstract class MachineLifecycleEffectorTasks {
      */
     protected StopMachineDetails<Integer> stopAnyProvisionedMachines() {
         @SuppressWarnings("unchecked")
-        MachineProvisioningLocation<MachineLocation> provisioner = entity().getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
+        MachineProvisioningLocation<MachineLocation> provisioner = (MachineProvisioningLocation)
+                entity().getAttribute(SoftwareProcess.LOCATION);
 
         if (Iterables.isEmpty(entity().getLocations())) {
             log.debug("No machine decommissioning necessary for "+entity()+" - no locations");

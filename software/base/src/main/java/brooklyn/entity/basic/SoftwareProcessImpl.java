@@ -100,13 +100,15 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         super(properties, parent);
     }
 
-    protected void setProvisioningLocation(MachineProvisioningLocation val) {
-        if (getAttribute(PROVISIONING_LOCATION) != null) throw new IllegalStateException("Cannot change provisioning location: existing="+getAttribute(PROVISIONING_LOCATION)+"; new="+val);
-        setAttribute(PROVISIONING_LOCATION, val);
+    protected void setProvisioningLocation(Location val) {
+        if (getAttribute(LOCATION) != null) {
+            throw new IllegalStateException("Cannot change provisioning location: existing=" + getAttribute(LOCATION) + "; new=" + val);
+        }
+        setAttribute(LOCATION, val);
     }
     
-    protected MachineProvisioningLocation getProvisioningLocation() {
-        return getAttribute(PROVISIONING_LOCATION);
+    protected Location getProvisioningLocation() {
+        return getAttribute(LOCATION);
     }
     
     @Override

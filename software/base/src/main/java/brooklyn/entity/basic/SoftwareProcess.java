@@ -29,6 +29,7 @@ import brooklyn.event.AttributeSensor;
 import brooklyn.event.basic.AttributeSensorAndConfigKey;
 import brooklyn.event.basic.MapConfigKey;
 import brooklyn.event.basic.Sensors;
+import brooklyn.location.Location;
 import brooklyn.location.MachineProvisioningLocation;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.flags.SetFromFlag;
@@ -272,8 +273,8 @@ public interface SoftwareProcess extends Entity, Startable {
             ChildStartableMode.NONE);
 
     @SuppressWarnings("rawtypes")
-    AttributeSensor<MachineProvisioningLocation> PROVISIONING_LOCATION = Sensors.newSensor(
-            MachineProvisioningLocation.class, "softwareservice.provisioningLocation", "Location used to provision a machine where this is running");
+    AttributeSensor<Location> LOCATION = Sensors.newSensor(
+            Location.class, "softwareservice.location", "Location used to running the entity");
 
     AttributeSensor<Boolean> SERVICE_PROCESS_IS_RUNNING = Sensors.newBooleanSensor("service.process.isRunning", 
             "Whether the process for the service is confirmed as running");

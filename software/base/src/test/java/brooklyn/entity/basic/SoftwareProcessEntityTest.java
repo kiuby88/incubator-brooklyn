@@ -104,7 +104,7 @@ public class SoftwareProcessEntityTest extends BrooklynAppUnitTestSupport {
         assertEquals(entity.getAttribute(SoftwareProcess.HOSTNAME), machine.getAddress().getHostName());
         assertEquals(entity.getAttribute(SoftwareProcess.ADDRESS), machine.getAddress().getHostAddress());
         assertEquals(entity.getAttribute(Attributes.SSH_ADDRESS), UserAndHostAndPort.fromParts(machine.getUser(), machine.getAddress().getHostName(), machine.getPort()));
-        assertEquals(entity.getAttribute(SoftwareProcess.PROVISIONING_LOCATION), loc);
+        assertEquals(entity.getAttribute(SoftwareProcess.LOCATION), loc);
     }
 
     @Test
