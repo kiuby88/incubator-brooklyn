@@ -153,6 +153,7 @@
         <jna.version>4.0.0</jna.version>
         <winrm4j.version>0.1.0</winrm4j.version>
         <coverage.target>${working.dir}</coverage.target>
+        <cloudfoundry.client.version>1.1.2</cloudfoundry.client.version>
 
         <!-- Transitive dependencies, declared explicitly to avoid version mismatch -->
         <clojure.version>1.4.0</clojure.version>
@@ -580,6 +581,11 @@
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna-platform</artifactId>
                 <version>${jna.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cloudfoundry</groupId>
+                <artifactId>cloudfoundry-client-lib</artifactId>
+                <version>${cloudfoundry.client.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
