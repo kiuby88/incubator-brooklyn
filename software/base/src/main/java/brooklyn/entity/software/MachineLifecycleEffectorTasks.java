@@ -420,6 +420,7 @@ public abstract class MachineLifecycleEffectorTasks {
     }
 
     protected Map<String, Object> obtainProvisioningFlags(final MachineProvisioningLocation<?> location) {
+        //Fixme this if could be deleted, any entity implements this
         if (entity() instanceof ProvidesProvisioningFlags) {
             return ((ProvidesProvisioningFlags)entity()).obtainProvisioningFlags(location).getAllConfig();
         }

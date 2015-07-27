@@ -97,7 +97,7 @@ public class SoftwareProcessDriverLifecycleEffectorTasks extends MachineLifecycl
     
     @Override
     protected Map<String, Object> obtainProvisioningFlags(final MachineProvisioningLocation<?> location) {
-        return entity().obtainProvisioningFlags(location);
+        return entity().obtainFlagsForLocation(location);
     }
      
     @Override

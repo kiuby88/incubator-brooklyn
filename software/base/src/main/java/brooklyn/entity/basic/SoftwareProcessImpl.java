@@ -18,26 +18,12 @@
  */
 package brooklyn.entity.basic;
 
-import brooklyn.util.flags.TypeCoercions;
-import brooklyn.util.guava.Maybe;
-import groovy.time.TimeDuration;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import brooklyn.config.ConfigKey;
 import brooklyn.enricher.basic.AbstractEnricher;
 import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Lifecycle.Transition;
 import brooklyn.entity.basic.ServiceStateLogic.ServiceNotUpLogic;
+import brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier.LocationFlagSupplier;
+import brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier.MachineProvisioningLocationFlagsSupplier;
 import brooklyn.entity.drivers.DriverDependentEntity;
 import brooklyn.entity.drivers.EntityDriverManager;
 import brooklyn.entity.effector.EffectorBody;
@@ -48,14 +34,10 @@ import brooklyn.event.feed.function.FunctionPollConfig;
 import brooklyn.location.Location;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.MachineProvisioningLocation;
-import brooklyn.location.PortRange;
-import brooklyn.location.basic.LocationConfigKeys;
 import brooklyn.location.basic.Machines;
-import brooklyn.location.cloud.CloudLocationConfig;
 import brooklyn.management.Task;
 import brooklyn.policy.EnricherSpec;
 import brooklyn.util.collections.MutableMap;
-import brooklyn.util.collections.MutableSet;
 import brooklyn.util.config.ConfigBag;
 import brooklyn.util.exceptions.Exceptions;
 import brooklyn.util.task.DynamicTasks;
@@ -63,12 +45,18 @@ import brooklyn.util.task.Tasks;
 import brooklyn.util.time.CountdownTimer;
 import brooklyn.util.time.Duration;
 import brooklyn.util.time.Time;
-
 import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.reflect.TypeToken;
+import groovy.time.TimeDuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link Entity} representing a piece of software which can be installed, run, and controlled.
@@ -86,7 +74,11 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     private volatile FunctionFeed serviceProcessIsRunning;
 
     protected boolean connectedSensors = false;
-    
+
+    //TODO these variables will be init by the factory
+    private LocationFlagSupplier locationFlagSupplier =
+            new MachineProvisioningLocationFlagsSupplier(this);
+
     public SoftwareProcessImpl() {
         super(MutableMap.of(), null);
     }
@@ -417,63 +409,15 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
 
     /** @deprecated since 0.6.0 use/override method in {@link SoftwareProcessDriverLifecycleEffectorTasks} */
     protected final void callStartHooks() {}
-    
-    protected Map<String,Object> obtainProvisioningFlags(MachineProvisioningLocation location) {
-        ConfigBag result = ConfigBag.newInstance(location.getProvisioningFlags(ImmutableList.of(getClass().getName())));
-        result.putAll(getConfig(PROVISIONING_PROPERTIES));
-        if (result.get(CloudLocationConfig.INBOUND_PORTS) == null) {
-            Collection<Integer> ports = getRequiredOpenPorts();
-            Object requiredPorts = result.get(CloudLocationConfig.ADDITIONAL_INBOUND_PORTS);
-            if (requiredPorts instanceof Integer) {
-                ports.add((Integer) requiredPorts);
-            } else if (requiredPorts instanceof Iterable) {
-                for (Object o : (Iterable<?>) requiredPorts) {
-                    if (o instanceof Integer) ports.add((Integer) o);
-                }
-            }
-            if (ports != null && ports.size() > 0) result.put(CloudLocationConfig.INBOUND_PORTS, ports);
-        }
-        result.put(LocationConfigKeys.CALLER_CONTEXT, this);
-        return result.getAllConfigMutable();
+
+    //Fixme this method should to be renamed because it is focus on IaaS and PaaS
+    protected Map<String,Object> obtainFlagsForLocation(Location location) {
+        return locationFlagSupplier.obtainFlagsForLocation(location);
     }
 
-    /** returns the ports that this entity wants to use;
-     * default implementation returns {@link SoftwareProcess#REQUIRED_OPEN_LOGIN_PORTS} plus first value 
-     * for each {@link brooklyn.event.basic.PortAttributeSensorAndConfigKey} config key {@link PortRange}
-     * plus any ports defined with a config keys ending in {@code .port}.
-     */
-    protected Collection<Integer> getRequiredOpenPorts() {
-        Set<Integer> ports = MutableSet.copyOf(getConfig(REQUIRED_OPEN_LOGIN_PORTS));
-        Map<ConfigKey<?>, ?> allConfig = config().getBag().getAllConfigAsConfigKeyMap();
-        Set<ConfigKey<?>> configKeys = Sets.newHashSet(allConfig.keySet());
-        configKeys.addAll(getEntityType().getConfigKeys());
-
-        /* TODO: This won't work if there's a port collision, which will cause the corresponding port attribute
-           to be incremented until a free port is found. In that case the entity will use the free port, but the
-           firewall will open the initial port instead. Mostly a problem for SameServerEntity, localhost location.
-         */
-        for (ConfigKey<?> k: configKeys) {
-            Object value;
-            if (PortRange.class.isAssignableFrom(k.getType()) || k.getName().matches(".*\\.port")) {
-                value = config().get(k);
-            } else {
-                // config().get() will cause this to block until all config has been resolved
-                // using config().getRaw(k) means that we won't be able to use e.g. 'http.port: $brooklyn:component("x").attributeWhenReady("foo")'
-                // but that's unlikely to be used
-                Maybe<Object> maybeValue = config().getRaw(k);
-                value = maybeValue.isPresent() ? maybeValue.get() : null;
-            }
-
-            Maybe<PortRange> maybePortRange = TypeCoercions.tryCoerce(value, new TypeToken<PortRange>() {});
-
-            if (maybePortRange.isPresentAndNonNull()) {
-                PortRange p = maybePortRange.get();
-                if (p != null && !p.isEmpty()) ports.add(p.iterator().next());
-            }
-        }        
-        
-        log.debug("getRequiredOpenPorts detected default {} for {}", ports, this);
-        return ports;
+    //FIXME better, it could be called getRequiredPorts because it is focus on IaaS and PaaS
+    protected Collection<Integer> getRequiredOpenPorts(){
+        return locationFlagSupplier.getRequiredOpenPorts();
     }
 
     /** @deprecated since 0.6.0 use {@link Machines#findSubnetHostname(Entity)} */ @Deprecated

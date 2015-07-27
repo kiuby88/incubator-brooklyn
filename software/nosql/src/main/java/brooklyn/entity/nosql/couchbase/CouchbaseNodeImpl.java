@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import brooklyn.location.Location;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,8 +109,9 @@ public class CouchbaseNodeImpl extends SoftwareProcessImpl implements CouchbaseN
         });
     }
 
-    protected Map<String, Object> obtainProvisioningFlags(@SuppressWarnings("rawtypes") MachineProvisioningLocation location) {
-        ConfigBag result = ConfigBag.newInstance(super.obtainProvisioningFlags(location));
+    @Override
+    protected Map<String, Object> obtainFlagsForLocation(@SuppressWarnings("rawtypes") Location location) {
+        ConfigBag result = ConfigBag.newInstance(super.obtainFlagsForLocation(location));
         result.configure(CloudLocationConfig.OS_64_BIT, true);
         return result.getAllConfig();
     }
