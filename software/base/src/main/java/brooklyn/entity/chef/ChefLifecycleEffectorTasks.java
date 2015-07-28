@@ -28,7 +28,7 @@ import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Attributes;
 import brooklyn.entity.basic.Lifecycle;
 import brooklyn.entity.basic.SoftwareProcess;
-import brooklyn.entity.software.MachineLifecycleEffectorTasks;
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import brooklyn.entity.software.SshEffectorTasks;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.basic.Machines;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.software;
+package brooklyn.entity.software.lifecycle;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
+import brooklyn.entity.software.ProvidesProvisioningFlags;
+import brooklyn.entity.software.SshEffectorTasks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +89,7 @@ import com.google.common.collect.Iterables;
 /**
  * Default skeleton for start/stop/restart tasks on machines.
  * <p>
- * Knows how to provision machines, making use of {@link ProvidesProvisioningFlags#obtainProvisioningFlags(MachineProvisioningLocation)},
+ * Knows how to provision machines, making use of {@link brooklyn.entity.software.ProvidesProvisioningFlags#obtainProvisioningFlags(MachineProvisioningLocation)},
  * and provides hooks for injecting behaviour at common places.
  * <p>
  * Methods are designed for overriding, with the convention that *Async methods should queue (and not block).
@@ -105,128 +107,16 @@ import com.google.common.collect.Iterables;
  * @since 0.6.0
  */
 @Beta
-public abstract class MachineLifecycleEffectorTasks {
+public abstract class MachineLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
 
     private static final Logger log = LoggerFactory.getLogger(MachineLifecycleEffectorTasks.class);
 
     public static final ConfigKey<Boolean> ON_BOX_BASE_DIR_RESOLVED = ConfigKeys.newBooleanConfigKey("onbox.base.dir.resolved",
         "Whether the on-box base directory has been resolved (for internal use)");
 
-    public static final ConfigKey<Collection<? extends Location>> LOCATIONS = StartParameters.LOCATIONS;
     public static final ConfigKey<Duration> STOP_PROCESS_TIMEOUT = ConfigKeys.newConfigKey(Duration.class,
             "process.stop.timeout", "How long to wait for the processes to be stopped; use null to mean forever", Duration.TWO_MINUTES);
 
-    /** Attaches lifecycle effectors (start, restart, stop) to the given entity post-creation. */
-    public void attachLifecycleEffectors(Entity entity) {
-        ((EntityInternal) entity).getMutableEntityType().addEffector(newStartEffector());
-        ((EntityInternal) entity).getMutableEntityType().addEffector(newRestartEffector());
-        ((EntityInternal) entity).getMutableEntityType().addEffector(newStopEffector());
-    }
-
-    /**
-     * Return an effector suitable for setting in a {@code public static final} or attaching dynamically.
-     * <p>
-     * The effector overrides the corresponding effector from {@link Startable} with
-     * the behaviour in this lifecycle class instance.
-     */
-    public Effector<Void> newStartEffector() {
-        return Effectors.effector(Startable.START).impl(newStartEffectorTask()).build();
-    }
-
-    /** @see {@link #newStartEffector()} */
-    public Effector<Void> newRestartEffector() {
-        return Effectors.effector(Startable.RESTART)
-                .parameter(RestartSoftwareParameters.RESTART_CHILDREN)
-                .parameter(RestartSoftwareParameters.RESTART_MACHINE)
-                .impl(newRestartEffectorTask())
-                .build();
-    }
-    
-    /** @see {@link #newStartEffector()} */
-    public Effector<Void> newStopEffector() {
-        return Effectors.effector(Startable.STOP)
-                .parameter(StopSoftwareParameters.STOP_PROCESS_MODE)
-                .parameter(StopSoftwareParameters.STOP_MACHINE_MODE)
-                .impl(newStopEffectorTask())
-                .build();
-    }
-
-    /**
-     * Returns the {@link TaskFactory} which supplies the implementation for the start effector.
-     * <p>
-     * Calls {@link #start(Collection)} in this class.
-     */
-    public EffectorBody<Void> newStartEffectorTask() {
-        return new EffectorBody<Void>() {
-            @Override
-            public Void call(ConfigBag parameters) {
-                Collection<? extends Location> locations  = null;
-
-                Object locationsRaw = parameters.getStringKey(LOCATIONS.getName());
-                locations = Locations.coerceToCollection(entity().getManagementContext(), locationsRaw);
-
-                if (locations==null) {
-                    // null/empty will mean to inherit from parent
-                    locations = Collections.emptyList();
-                }
-
-                start(locations);
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Calls {@link #restart(ConfigBag)}.
-     *
-     * @see {@link #newStartEffectorTask()}
-     */
-    public EffectorBody<Void> newRestartEffectorTask() {
-        return new EffectorBody<Void>() {
-            @Override
-            public Void call(ConfigBag parameters) {
-                restart(parameters);
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Calls {@link #stop()}.
-     *
-     * @see {@link #newStartEffectorTask()}
-     */
-    public EffectorBody<Void> newStopEffectorTask() {
-        return new EffectorBody<Void>() {
-            @Override
-            public Void call(ConfigBag parameters) {
-                stop(parameters);
-                return null;
-            }
-        };
-    }
-
-    protected EntityInternal entity() {
-        return (EntityInternal) BrooklynTaskTags.getTargetOrContextEntity(Tasks.current());
-    }
-
-    protected Location getLocation(@Nullable Collection<? extends Location> locations) {
-        if (locations==null || locations.isEmpty()) locations = entity().getLocations();
-        if (locations.isEmpty()) {
-            MachineProvisioningLocation<?> provisioner = entity().getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
-            if (provisioner!=null) locations = Arrays.<Location>asList(provisioner);
-        }
-        locations = Locations.getLocationsCheckingAncestors(locations, entity());
-
-        Maybe<MachineLocation> ml = Locations.findUniqueMachineLocation(locations);
-        if (ml.isPresent()) return ml.get();
-
-        if (locations.isEmpty())
-            throw new IllegalArgumentException("No locations specified when starting "+entity());
-        if (locations.size() != 1 || Iterables.getOnlyElement(locations)==null)
-            throw new IllegalArgumentException("Ambiguous locations detected when starting "+entity()+": "+locations);
-        return Iterables.getOnlyElement(locations);
-    }
     
     /** runs the tasks needed to start, wrapped by setting {@link Attributes#SERVICE_STATE_EXPECTED} appropriately */ 
     public void start(Collection<? extends Location> locations) {
@@ -376,13 +266,13 @@ public abstract class MachineLifecycleEffectorTasks {
         } else if (machine instanceof SshMachineLocation) {
             SshMachineLocation ms = (SshMachineLocation)machine;
             ProcessTaskWrapper<Integer> baseTask = SshEffectorTasks.ssh(
-                BashCommands.alternatives("mkdir -p \"${BASE_DIR}\"",
-                    BashCommands.chain(
-                        BashCommands.sudo("mkdir -p \"${BASE_DIR}\""),
-                        BashCommands.sudo("chown "+ms.getUser()+" \"${BASE_DIR}\""))),
-                "cd ~",
-                "cd ${BASE_DIR}",
-                "echo BASE_DIR_RESULT':'`pwd`:BASE_DIR_RESULT")
+                    BashCommands.alternatives("mkdir -p \"${BASE_DIR}\"",
+                            BashCommands.chain(
+                                    BashCommands.sudo("mkdir -p \"${BASE_DIR}\""),
+                                    BashCommands.sudo("chown " + ms.getUser() + " \"${BASE_DIR}\""))),
+                    "cd ~",
+                    "cd ${BASE_DIR}",
+                    "echo BASE_DIR_RESULT':'`pwd`:BASE_DIR_RESULT")
                 .environmentVariable("BASE_DIR", base)
                 .requiringExitCodeZero()
                 .summary("initializing on-box base dir "+base).newTask();

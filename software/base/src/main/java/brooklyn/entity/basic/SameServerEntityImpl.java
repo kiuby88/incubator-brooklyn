@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 
-import brooklyn.entity.software.MachineLifecycleEffectorTasks;
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import brooklyn.location.Location;
 import brooklyn.management.Task;
 import brooklyn.util.config.ConfigBag;

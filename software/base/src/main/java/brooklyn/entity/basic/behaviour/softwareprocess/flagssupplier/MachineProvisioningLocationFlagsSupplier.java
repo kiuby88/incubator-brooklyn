@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier;
+package brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier;
 
 
 import brooklyn.basic.BrooklynObjectInternal.ConfigurationSupportInternal;

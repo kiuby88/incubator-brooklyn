@@ -24,6 +24,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.util.List;
 
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 

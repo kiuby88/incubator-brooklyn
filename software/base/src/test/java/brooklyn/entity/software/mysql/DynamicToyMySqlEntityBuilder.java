@@ -30,7 +30,7 @@ import brooklyn.entity.basic.BrooklynTaskTags;
 import brooklyn.entity.basic.EntityLocal;
 import brooklyn.entity.proxying.EntityInitializer;
 import brooklyn.entity.proxying.EntitySpec;
-import brooklyn.entity.software.MachineLifecycleEffectorTasks;
+import brooklyn.entity.software.lifecycle.MachineLifecycleEffectorTasks;
 import brooklyn.entity.software.SshEffectorTasks;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.OsDetails;

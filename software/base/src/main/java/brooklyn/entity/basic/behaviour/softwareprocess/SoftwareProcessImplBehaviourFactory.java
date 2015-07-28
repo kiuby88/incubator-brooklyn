@@ -16,20 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier;
+package brooklyn.entity.basic.behaviour.softwareprocess;
 
 
-import brooklyn.entity.basic.AbstractEntity;
-import brooklyn.location.Location;
+import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.LocationFlagSupplier;
+import brooklyn.entity.software.lifecycle.LifecycleEffectorTasks;
 
-import java.util.Collection;
-import java.util.Map;
+public interface SoftwareProcessImplBehaviourFactory {
 
-public interface LocationFlagSupplier {
-
-    public AbstractEntity entity();
-
-    public Map<String, Object> obtainFlagsForLocation(Location location);
-    public Collection<Integer> getRequiredOpenPorts();
+    public LifecycleEffectorTasks getLifecycleEffectorTasks();
+    public LocationFlagSupplier getLocationFlagSupplier();
 
 }

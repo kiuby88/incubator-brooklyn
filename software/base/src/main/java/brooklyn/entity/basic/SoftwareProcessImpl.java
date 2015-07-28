@@ -22,11 +22,15 @@ import brooklyn.enricher.basic.AbstractEnricher;
 import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Lifecycle.Transition;
 import brooklyn.entity.basic.ServiceStateLogic.ServiceNotUpLogic;
-import brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier.LocationFlagSupplier;
-import brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier.MachineProvisioningLocationFlagsSupplier;
+import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplBehaviourFactory;
+import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplMachineBehaviourFactory;
+import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplPaasBehaviourFactory;
+import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.LocationFlagSupplier;
+import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.MachineProvisioningLocationFlagsSupplier;
 import brooklyn.entity.drivers.DriverDependentEntity;
 import brooklyn.entity.drivers.EntityDriverManager;
 import brooklyn.entity.effector.EffectorBody;
+import brooklyn.entity.software.lifecycle.LifecycleEffectorTasks;
 import brooklyn.event.SensorEvent;
 import brooklyn.event.SensorEventListener;
 import brooklyn.event.feed.function.FunctionFeed;
@@ -34,12 +38,15 @@ import brooklyn.event.feed.function.FunctionPollConfig;
 import brooklyn.location.Location;
 import brooklyn.location.MachineLocation;
 import brooklyn.location.MachineProvisioningLocation;
+import brooklyn.location.basic.Locations;
 import brooklyn.location.basic.Machines;
+import brooklyn.location.paas.PaasLocation;
 import brooklyn.management.Task;
 import brooklyn.policy.EnricherSpec;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.config.ConfigBag;
 import brooklyn.util.exceptions.Exceptions;
+import brooklyn.util.guava.Maybe;
 import brooklyn.util.task.DynamicTasks;
 import brooklyn.util.task.Tasks;
 import brooklyn.util.time.CountdownTimer;
@@ -51,6 +58,8 @@ import groovy.time.TimeDuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Timer;
@@ -76,8 +85,9 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     protected boolean connectedSensors = false;
 
     //TODO these variables will be init by the factory
-    private LocationFlagSupplier locationFlagSupplier =
-            new MachineProvisioningLocationFlagsSupplier(this);
+    private SoftwareProcessImplBehaviourFactory fabric;
+    private LocationFlagSupplier locationFlagSupplier;
+    private LifecycleEffectorTasks LIFECYCLE_TASKS;
 
     public SoftwareProcessImpl() {
         super(MutableMap.of(), null);
@@ -118,7 +128,7 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     @Override
     public void init() {
         super.init();
-        getLifecycleEffectorTasks().attachLifecycleEffectors(this);
+        //getLifecycleEffectorTasks().attachLifecycleEffectors(this);
     }
     
     @Override
@@ -498,18 +508,84 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         }
     }
 
+
+
+
     /**
      * If custom behaviour is required by sub-classes, consider overriding {@link #doStart(Collection)})}.
      */
     @Override
     public final void start(final Collection<? extends Location> locations) {
+
+        Location targetLocation = getLocation(locations);
+        initFabricAndParameters(targetLocation);
+        LIFECYCLE_TASKS.attachLifecycleEffectors(this);
+
+//        LIFECYCLE_TASKS.start(locations);
+
         if (DynamicTasks.getTaskQueuingContext() != null) {
             doStart(locations);
         } else {
-            Task<?> task = Tasks.builder().name("start (sequential)").body(new Runnable() { public void run() { doStart(locations); } }).build();
+            Task<?> task = Tasks.builder()
+                    .name("start (sequential)")
+                    .body(new Runnable() { public void run() { doStart(locations); } }).build();
             Entities.submit(this, task).getUnchecked();
         }
     }
+
+
+
+
+    /**
+     * Adding behaviour to the entity depending on the {@link Location}
+     * @param location
+     */
+    private void initFabricAndParameters(Location location){
+
+        if((location instanceof MachineProvisioningLocation) ||
+                (location instanceof MachineLocation)){
+            fabric =  new SoftwareProcessImplMachineBehaviourFactory(this);
+        } else if(location instanceof PaasLocation){
+            fabric =  new SoftwareProcessImplPaasBehaviourFactory(this);
+        }
+
+        LIFECYCLE_TASKS = fabric.getLifecycleEffectorTasks();
+        locationFlagSupplier= fabric.getLocationFlagSupplier();
+
+        log.info("Lifecycle {} was selected for {}", LIFECYCLE_TASKS, this);
+    }
+
+
+    /**
+     * This method was copied from {@linkMachineLifecycleEffectorTasks}
+     * @param locations
+     * @return
+     */
+    //Fixme this method is duplicated on MachineLifecycleEffectorTasks.
+    protected Location getLocation(@Nullable Collection<? extends Location> locations) {
+        if (locations==null || locations.isEmpty()) locations = this.getLocations();
+        if (locations.isEmpty()) {
+            MachineProvisioningLocation<?> provisioner = this.getAttribute(SoftwareProcess.PROVISIONING_LOCATION);
+            if (provisioner!=null) locations = Arrays.<Location>asList(provisioner);
+        }
+        locations = Locations.getLocationsCheckingAncestors(locations, this);
+
+        Maybe<MachineLocation> ml = Locations.findUniqueMachineLocation(locations);
+        if (ml.isPresent()) return ml.get();
+
+        if (locations.isEmpty())
+            throw new IllegalArgumentException("No locations specified when starting "+this);
+        if (locations.size() != 1 || Iterables.getOnlyElement(locations)==null)
+            throw new IllegalArgumentException("Ambiguous locations detected when starting "+this+": "+locations);
+        return Iterables.getOnlyElement(locations);
+    }
+
+
+
+
+
+
+
 
     /**
      * If custom behaviour is required by sub-classes, consider overriding {@link #doStop()}.
@@ -583,8 +659,9 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         doRestart(ConfigBag.EMPTY);
     }
 
-    protected SoftwareProcessDriverLifecycleEffectorTasks getLifecycleEffectorTasks() {
-        return getConfig(LIFECYCLE_EFFECTOR_TASKS);
+    protected LifecycleEffectorTasks getLifecycleEffectorTasks() {
+        //return getConfig(LIFECYCLE_EFFECTOR_TASKS);
+        return LIFECYCLE_TASKS;
     }
 
 }

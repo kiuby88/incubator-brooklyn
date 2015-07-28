@@ -16,36 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier;
+package brooklyn.entity.basic;
 
-
-import brooklyn.entity.basic.AbstractEntity;
+import brooklyn.entity.software.lifecycle.AbstractLifecycleEffectorTasks;
 import brooklyn.location.Location;
+import brooklyn.util.config.ConfigBag;
+import com.google.common.annotations.Beta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-public class PaasLocationFlagsSupplier extends AbstractLocationFlagsSupplier {
+@Beta
+public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
 
-    private static final Logger log = LoggerFactory.getLogger(PaasLocationFlagsSupplier.class);
+    private static final Logger log = LoggerFactory.getLogger(PaasLifecycleEffectorTasks.class);
 
-
-    public PaasLocationFlagsSupplier(AbstractEntity entity) {
-        super(entity);
+    @Override
+    protected SoftwareProcessImpl entity() {
+        return (SoftwareProcessImpl) super.entity();
     }
 
     @Override
-    public Map<String,Object> obtainFlagsForLocation(Location location){
-        return new HashMap<>();
+    public void start(Collection<? extends Location> locations) {
+        //TODO
     }
 
+    /**
+     * Default restart implementation for an entity.
+     * <p>
+     * Stops processes if possible, then starts the entity again.
+     */
     @Override
-    public Collection<Integer> getRequiredOpenPorts() {
-        return new ArrayList<>();
+    public void restart(ConfigBag parameters) {
+        //TODO
+    }
+
+
+
+
+    @Override
+    public void stop(ConfigBag parameters) {
+        //TODO
     }
 
 }

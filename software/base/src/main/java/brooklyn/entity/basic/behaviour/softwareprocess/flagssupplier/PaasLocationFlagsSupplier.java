@@ -16,28 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.basic.behaviour.softwareprocesss.flagssupplier;
+package brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier;
 
 
 import brooklyn.entity.basic.AbstractEntity;
 import brooklyn.location.Location;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractLocationFlagsSupplier implements LocationFlagSupplier{
+public class PaasLocationFlagsSupplier extends AbstractLocationFlagsSupplier {
 
-    AbstractEntity entity;
-
-    public AbstractLocationFlagsSupplier(AbstractEntity entity){
-        this.entity = entity;
-    }
+    private static final Logger log = LoggerFactory.getLogger(PaasLocationFlagsSupplier.class);
 
 
-    @Override
-    public AbstractEntity entity() {
-        return entity;
+    public PaasLocationFlagsSupplier(AbstractEntity entity) {
+        super(entity);
     }
 
     @Override
-    public abstract Map<String, Object> obtainFlagsForLocation(Location location);
+    public Map<String,Object> obtainFlagsForLocation(Location location){
+        return new HashMap<>();
+    }
+
+    @Override
+    public Collection<Integer> getRequiredOpenPorts() {
+        return new ArrayList<>();
+    }
+
 }
