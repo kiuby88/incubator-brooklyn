@@ -18,7 +18,7 @@
  */
 package brooklyn.entity.basic.behaviour.softwareprocess;
 
-import brooklyn.entity.basic.SoftwareProcessDriverLifecycleEffectorTasks;
+import brooklyn.entity.basic.PaasLifecycleEffectorTasks;
 import brooklyn.entity.basic.SoftwareProcessImpl;
 import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.LocationFlagSupplier;
 import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.PaasLocationFlagsSupplier;
@@ -36,7 +36,7 @@ public class SoftwareProcessImplPaasBehaviourFactory
 
     @Override
     public LifecycleEffectorTasks getLifecycleEffectorTasks() {
-        return new SoftwareProcessDriverLifecycleEffectorTasks();
+        return new PaasLifecycleEffectorTasks();
     }
 
     @Override

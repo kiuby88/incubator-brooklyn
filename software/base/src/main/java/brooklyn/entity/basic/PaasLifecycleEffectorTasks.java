@@ -20,7 +20,9 @@ package brooklyn.entity.basic;
 
 import brooklyn.entity.software.lifecycle.AbstractLifecycleEffectorTasks;
 import brooklyn.location.Location;
+import brooklyn.location.paas.PaasLocation;
 import brooklyn.util.config.ConfigBag;
+import brooklyn.util.exceptions.Exceptions;
 import com.google.common.annotations.Beta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +41,57 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
 
     @Override
     public void start(Collection<? extends Location> locations) {
-        //TODO
+        ServiceStateLogic.setExpectedState(entity(), Lifecycle.STARTING);
+        try {
+
+            PaasLocation location = (PaasLocation)entity().getLocation(locations);
+
+            preStartProcess(location);
+            startProcess();
+            postStartProcess();
+
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.RUNNING);
+        } catch (Throwable t) {
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.ON_FIRE);
+            log.error("Error error starting entity {}", entity());
+            throw Exceptions.propagate(t);
+        }
+    }
+
+    //TODO: This method could be uploaded to the super class.
+    protected void preStartProcess(PaasLocation location){
+        createDriver(location);
+        entity().preStart();
+    }
+
+    /**
+     * Create the driver ensuring that the location is ready.
+     */
+    private void createDriver(PaasLocation location) {
+        if (location != null) {
+            entity().initDriver(location);
+        } else {
+            throw new ExceptionInInitializerError("Location should not be null in " + this +
+                    " the driver needs a initialized Location");
+        }
+    }
+
+    protected void startProcess(){
+        entity().getDriver().start();
+    }
+
+    protected void postStartProcess(){
+        entity().postDriverStart();
+        if(entity().connectedSensors){
+            log.debug("skipping connecting sensors for "+entity()+" " +
+                    "in driver-tasks postStartCustom because already connected (e.g. restarting)");
+        } else {
+            log.debug("connecting sensors for "+entity()+" in driver-tasks postStartCustom because already connected (e.g. restarting)");
+            entity().connectSensors();
+        }
+        entity().waitForServiceUp();
+        entity().postStart();
+
     }
 
     /**
@@ -51,9 +103,6 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
     public void restart(ConfigBag parameters) {
         //TODO
     }
-
-
-
 
     @Override
     public void stop(ConfigBag parameters) {

@@ -36,6 +36,7 @@ import brooklyn.location.basic.Locations;
 import brooklyn.util.config.ConfigBag;
 import brooklyn.util.guava.Maybe;
 import brooklyn.util.task.Tasks;
+import com.google.common.annotations.Beta;
 import com.google.common.collect.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+@Beta
 public abstract class AbstractLifecycleEffectorTasks implements LifecycleEffectorTasks {
 
 

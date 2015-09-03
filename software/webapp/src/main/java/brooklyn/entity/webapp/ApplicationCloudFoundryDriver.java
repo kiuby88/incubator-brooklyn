@@ -16,28 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.software.lifecycle;
+package brooklyn.entity.webapp;
 
 
-import brooklyn.entity.Entity;
-import brooklyn.location.Location;
-import brooklyn.util.config.ConfigBag;
-import com.google.common.annotations.Beta;
+import brooklyn.entity.basic.SoftwareProcessDriver;
 
-import java.util.Collection;
+public interface ApplicationCloudFoundryDriver extends SoftwareProcessDriver {
 
-@Beta
-public interface LifecycleEffectorTasks {
+    //TODO delete?
+    /**
+     * Kills the process, ungracefully and immediately where possible (e.g. with `kill -9`).
+     */
+    void deleteApplication();
 
+    /**
+     * Return the number of instances that are used for an application.
+     * @return
+     */
+    int getInstancesNumber();
 
-    void attachLifecycleEffectors(Entity entity);
+    /**
+     * Return the current disk quota used by the application.
+     * @return
+     */
+    int getDisk();
 
-    void start(Collection<? extends Location> locations);
+    /**
+     * Return the current assigned memory to the application.
+     * @return
+     */
+    int getMemory();
 
-    void restart(ConfigBag parameters);
-
-    void stop(ConfigBag paramters);
-
-    @Deprecated
-    void stop();
 }

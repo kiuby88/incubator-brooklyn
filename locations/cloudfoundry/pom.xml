@@ -84,12 +84,5 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.brooklyn</groupId>
-            <artifactId>brooklyn-launcher</artifactId>
-            <version>${brooklyn.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 </project>

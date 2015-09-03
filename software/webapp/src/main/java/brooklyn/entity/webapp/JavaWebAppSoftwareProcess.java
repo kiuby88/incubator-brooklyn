@@ -18,10 +18,19 @@
  */
 package brooklyn.entity.webapp;
 
+import brooklyn.config.ConfigKey;
+import brooklyn.entity.basic.ConfigKeys;
 import brooklyn.entity.basic.SoftwareProcess;
+import brooklyn.util.flags.SetFromFlag;
 
 public interface JavaWebAppSoftwareProcess extends SoftwareProcess, JavaWebAppService, JavaWebAppService.CanDeployAndUndeploy {
-    
+
+    //TODO:probably, this ConfigKey could be moved to the children classes
+    @SetFromFlag("buildpack")
+    ConfigKey<String> BUILDPACK= ConfigKeys.newStringConfigKey(
+            "cloudFoundryWebApp.application.buildpack", "URL of the required buildpack",
+            "https://github.com/cloudfoundry/java-buildpack.git");
+
     // exist on the interface for freemarker to pick it up
     
     public boolean isHttpEnabled();

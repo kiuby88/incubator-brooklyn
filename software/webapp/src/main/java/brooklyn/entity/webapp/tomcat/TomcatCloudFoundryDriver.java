@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.entity.software.lifecycle;
+package brooklyn.entity.webapp.tomcat;
 
+import brooklyn.entity.basic.EntityLocal;
+import brooklyn.entity.webapp.JavaWebAppCloudFoundryDriver;
+import brooklyn.location.cloudfoundry.CloudFoundryPaasLocation;
 
-import brooklyn.entity.Entity;
-import brooklyn.location.Location;
-import brooklyn.util.config.ConfigBag;
-import com.google.common.annotations.Beta;
+public class TomcatCloudFoundryDriver extends JavaWebAppCloudFoundryDriver implements TomcatDriver{
 
-import java.util.Collection;
+    public TomcatCloudFoundryDriver(EntityLocal entity, CloudFoundryPaasLocation location) {
+        super(entity, location);
+    }
 
-@Beta
-public interface LifecycleEffectorTasks {
+    @Override
+    public String getBuildpack() {
+        return getEntity().getConfig(TomcatServer.BUILDPACK);
+    }
 
-
-    void attachLifecycleEffectors(Entity entity);
-
-    void start(Collection<? extends Location> locations);
-
-    void restart(ConfigBag parameters);
-
-    void stop(ConfigBag paramters);
-
-    @Deprecated
-    void stop();
 }

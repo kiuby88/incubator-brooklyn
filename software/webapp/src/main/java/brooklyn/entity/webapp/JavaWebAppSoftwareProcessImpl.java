@@ -203,4 +203,9 @@ public abstract class JavaWebAppSoftwareProcessImpl extends SoftwareProcessImpl 
         return (config == null) ? "" : config.getKeystorePassword();
     }
 
+    public String getBuildpack() {
+        return getConfig(BUILDPACK);
+    }
+
+
 }

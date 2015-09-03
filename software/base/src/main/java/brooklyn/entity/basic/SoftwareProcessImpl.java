@@ -26,7 +26,6 @@ import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplBehavi
 import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplMachineBehaviourFactory;
 import brooklyn.entity.basic.behaviour.softwareprocess.SoftwareProcessImplPaasBehaviourFactory;
 import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.LocationFlagSupplier;
-import brooklyn.entity.basic.behaviour.softwareprocess.flagssupplier.MachineProvisioningLocationFlagsSupplier;
 import brooklyn.entity.drivers.DriverDependentEntity;
 import brooklyn.entity.drivers.EntityDriverManager;
 import brooklyn.entity.effector.EffectorBody;
@@ -116,9 +115,9 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         return driver;
     }
 
-    protected SoftwareProcessDriver newDriver(MachineLocation loc){
+    protected SoftwareProcessDriver newDriver(Location location){
         EntityDriverManager entityDriverManager = getManagementContext().getEntityDriverManager();
-        return (SoftwareProcessDriver)entityDriverManager.build(this, loc);
+        return (SoftwareProcessDriver)entityDriverManager.build(this, location);
     }
 
     protected MachineLocation getMachineOrNull() {
@@ -435,10 +434,10 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
         return Machines.findSubnetHostname(this).get();
     }
 
-    protected void initDriver(MachineLocation machine) {
-        SoftwareProcessDriver newDriver = doInitDriver(machine);
+    protected void initDriver(Location location) {
+        SoftwareProcessDriver newDriver = doInitDriver(location);
         if (newDriver == null) {
-            throw new UnsupportedOperationException("cannot start "+this+" on "+machine+": no driver available");
+            throw new UnsupportedOperationException("cannot start "+this+" on "+location+": no driver available");
         }
         driver = newDriver;
     }
@@ -447,16 +446,16 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
      * Creates the driver (if does not already exist or needs replaced for some reason). Returns either the existing driver
      * or a new driver. Must not return null.
      */
-    protected SoftwareProcessDriver doInitDriver(MachineLocation machine) {
+    protected SoftwareProcessDriver doInitDriver(Location location) {
         if (driver!=null) {
-            if ((driver instanceof AbstractSoftwareProcessDriver) && machine.equals(((AbstractSoftwareProcessDriver)driver).getLocation())) {
+            if ((driver instanceof AbstractSoftwareProcessDriver) && location.equals(((AbstractSoftwareProcessDriver)driver).getLocation())) {
                 return driver; //just reuse
             } else {
-                log.warn("driver/location change is untested for {} at {}; changing driver and continuing", this, machine);
-                return newDriver(machine);
+                log.warn("driver/location change is untested for {} at {}; changing driver and continuing", this, location);
+                return newDriver(location);
             }
         } else {
-            return newDriver(machine);
+            return newDriver(location);
         }
     }
     

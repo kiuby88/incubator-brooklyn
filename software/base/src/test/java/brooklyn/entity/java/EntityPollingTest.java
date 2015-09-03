@@ -18,15 +18,6 @@
  */
 package brooklyn.entity.java;
 
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
 import brooklyn.entity.basic.Entities;
 import brooklyn.entity.basic.SoftwareProcess;
 import brooklyn.entity.java.UsesJmx.JmxAgentModes;
@@ -34,16 +25,23 @@ import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.event.basic.BasicAttributeSensor;
 import brooklyn.event.feed.jmx.JmxAttributePollConfig;
 import brooklyn.event.feed.jmx.JmxFeed;
-import brooklyn.location.MachineLocation;
+import brooklyn.location.Location;
 import brooklyn.location.basic.SshMachineLocation;
 import brooklyn.test.EntityTestUtils;
 import brooklyn.test.JmxService;
 import brooklyn.test.entity.TestApplication;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.exceptions.Exceptions;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 public class EntityPollingTest {
 
@@ -96,7 +94,7 @@ public class EntityPollingTest {
         }
 
         @Override
-        public VanillaJavaAppSshDriver newDriver(MachineLocation loc) {
+        public VanillaJavaAppSshDriver newDriver(Location loc) {
             return new VanillaJavaAppSshDriver(this, (SshMachineLocation)loc) {
                 @Override public void install() {
                     // no-op
