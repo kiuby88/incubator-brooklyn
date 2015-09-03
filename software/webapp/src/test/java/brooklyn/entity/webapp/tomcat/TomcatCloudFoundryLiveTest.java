@@ -25,26 +25,25 @@ import brooklyn.entity.basic.SoftwareProcess;
 import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.entity.trait.Startable;
 import brooklyn.entity.webapp.WebAppService;
+import brooklyn.entity.webapp.WebAppServiceConstants;
 import brooklyn.test.Asserts;
 import brooklyn.util.exceptions.PropagatedRuntimeException;
 import com.google.common.collect.ImmutableList;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 
+@Test(groups = {"Live"})
 public class TomcatCloudFoundryLiveTest extends AbstractCloudFoundryPaasLocationLiveTest {
 
-    private final String APPLICATION_ARTIFACT_NAME = "brooklyn-example-hello-world-webapp.war";
+    private final String APPLICATION_ARTIFACT_NAME = "hello-world.war";
 
     private final String APPLICATION_ARTIFACT_URL =
             getClasspathUrlForResource(APPLICATION_ARTIFACT_NAME);
 
-    @Test(groups = {"Live"})
     protected void deployApplicationTest() throws Exception {
         final TomcatServer server = app.
                 createAndManageChild(EntitySpec.create(TomcatServer.class)
@@ -61,36 +60,22 @@ public class TomcatCloudFoundryLiveTest extends AbstractCloudFoundryPaasLocation
 
                 assertNotNull(server.getAttribute(Attributes.MAIN_URI));
                 assertNotNull(server.getAttribute(WebAppService.ROOT_URL));
+
+                System.out.println(server.getAttribute(WebAppService.ROOT_URL));
+
+                assertEquals(server.getAttribute(WebAppServiceConstants.ENABLED_PROTOCOLS).size(), 2   );
+                assertTrue(server.isHttpEnabled());
+                assertTrue(server.isHttpsEnabled());
+                assertEquals(server.getHttpPort(), new Integer(8080));
+                assertEquals(server.getHttpsPort(), new Integer(443));
+
             }
         });
     }
 
-    @Test(groups = {"Live"})
-    protected void stopApplicationTest() throws Exception {
-        final TomcatServer server = app.
-                createAndManageChild(EntitySpec.create(TomcatServer.class)
-                        .configure("application-name", "stopped" + APPLICATION_NAME)
-                        .configure("wars.root", APPLICATION_ARTIFACT_URL)
-                        .location(cloudFoundryPaasLocation));
-
-        app.start(ImmutableList.of(cloudFoundryPaasLocation));
-        Asserts.succeedsEventually(new Runnable() {
-            public void run() {
-                assertTrue(server.getAttribute(Startable.SERVICE_UP));
-                app.stop();
-                assertEquals(server.getAttribute(TomcatServer.SERVICE_STATE_ACTUAL),
-                        Lifecycle.STOPPED);
-                assertFalse(server.getAttribute(Startable.SERVICE_UP));
-                assertNull(server.getAttribute(TomcatServer.SERVICE_PROCESS_IS_RUNNING));
-            }
-        });
-    }
-
-    @Test(groups = {"Live"})
     protected void wrongApplicationOnFireStatusTest() throws Exception {
         final TomcatServer server = app.
                 createAndManageChild(EntitySpec.create(TomcatServer.class)
-                        .configure("application-name", "wrong-" + APPLICATION_NAME)
                         .configure("wars.root", APPLICATION_ARTIFACT_URL + "wrong")
                         .location(cloudFoundryPaasLocation));
 

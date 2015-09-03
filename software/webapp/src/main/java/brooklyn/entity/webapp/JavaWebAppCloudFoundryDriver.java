@@ -18,13 +18,17 @@
  */
 package brooklyn.entity.webapp;
 
+import brooklyn.entity.basic.Attributes;
 import brooklyn.entity.basic.EntityLocal;
 import brooklyn.entity.java.JavaSoftwareProcessDriver;
 import brooklyn.location.cloudfoundry.CloudFoundryPaasLocation;
+import com.google.common.collect.ImmutableSet;
+import org.cloudfoundry.client.lib.domain.CloudApplication;
 import org.cloudfoundry.client.lib.domain.Staging;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +37,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class JavaWebAppCloudFoundryDriver extends AbstractApplicationCloudFoundryDriver
 implements JavaSoftwareProcessDriver, JavaWebAppDriver{
+
+    private static final int HTTP_PORT = 8080;
+    private static final int HTTP_PORTS = 443;
+    private static final  Set<String> ENABLED_PROTOCOLS;
+    static{
+        ENABLED_PROTOCOLS = ImmutableSet.of("http", "https");
+    }
 
     private String applicationName;
     private String applicationWarUrl;
@@ -49,10 +60,14 @@ implements JavaSoftwareProcessDriver, JavaWebAppDriver{
     protected void init() {
         super.init();
         initApplicationParameters();
+        initAttributes();
     }
 
     @SuppressWarnings("unchecked")
-    private void initApplicationParameters() {
+    /**
+     * It allows to init parameters necessary for the drivers.
+     */
+    protected void initApplicationParameters() {
         //TODO: Probably, this method could be moved to the super class.
         //but, a new configkey should be necessary to specify the deployment
         //artifact (war) without using the java service.
@@ -65,6 +80,17 @@ implements JavaSoftwareProcessDriver, JavaWebAppDriver{
         //These values shouldn't be null or empty
         checkNotNull(applicationWarUrl, "application war url");
         checkNotNull(applicationName, "application name");
+    }
+
+    /**
+     * It allows to change the value to the generic entity attributes
+     * according to the PaaS constraint
+     */
+    protected void initAttributes(){
+        getEntity().setAttribute(Attributes.HTTP_PORT, HTTP_PORT);
+        getEntity().setAttribute(Attributes.HTTPS_PORT, HTTP_PORTS);
+
+        getEntity().setAttribute(WebAppServiceConstants.ENABLED_PROTOCOLS, ENABLED_PROTOCOLS);
     }
 
     @Override
@@ -81,28 +107,66 @@ implements JavaSoftwareProcessDriver, JavaWebAppDriver{
     }
 
     @Override
-    public void deploy() {
-        getEntity().deploy(applicationWarUrl, applicationName);
-    }
-
-    @Override
     public Set<String> getEnabledProtocols() {
-        return null;
+        return entity.getAttribute(JavaWebAppSoftwareProcess.ENABLED_PROTOCOLS);
     }
 
     @Override
     public Integer getHttpPort() {
-        return null;
+        return getEntity().getHttpPort();
     }
 
     @Override
     public Integer getHttpsPort() {
-        return null;
+        return getEntity().getHttpsPort();
     }
 
     @Override
     public HttpsSslConfig getHttpsSslConfig() {
         return null;
+    }
+
+    @Override
+    public void postLaunch() {
+        super.postLaunch();
+        String domainUrl = inferRootUrl();
+        getEntity().setAttribute(Attributes.MAIN_URI, URI.create(domainUrl));
+        entity.setAttribute(WebAppService.ROOT_URL,  domainUrl);
+    }
+
+    protected String inferRootUrl() {
+        //TODO: this method is copied from JavaWebAppSshDriver, so it could be moved to any super class.
+
+        CloudApplication application = getClient().getApplication(getApplicationName());
+        String domainUri = application.getUris().get(0);
+
+        if (isProtocolEnabled("https")) {
+            Integer port = getHttpsPort();
+            checkNotNull(port, "HTTPS_PORT sensors not set; is an acceptable port available?");
+            return String.format("https://%s", domainUri);
+        } else if (isProtocolEnabled("http")) {
+            Integer port = getHttpPort();
+            checkNotNull(port, "HTTP_PORT sensors not set; is an acceptable port available?");
+            return String.format("http://%s", domainUri);
+        } else {
+            throw new IllegalStateException("HTTP and HTTPS protocols not enabled for "+entity+"; enabled protocols are "+getEnabledProtocols());
+        }
+    }
+
+    protected boolean isProtocolEnabled(String protocol) {
+        //TODO: this method is copied from JavaWebAppSshDriver, so it could be moved to any super class.
+        Set<String> protocols = getEnabledProtocols();
+        for (String contender : protocols) {
+            if (protocol.equalsIgnoreCase(contender)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void deploy() {
+        getEntity().deploy(applicationWarUrl, applicationName);
     }
 
     @Override
@@ -145,7 +209,7 @@ implements JavaSoftwareProcessDriver, JavaWebAppDriver{
 
     @Override
     public void undeploy(String targetName) {
-
+        //TODO: complete
     }
 
     @Override

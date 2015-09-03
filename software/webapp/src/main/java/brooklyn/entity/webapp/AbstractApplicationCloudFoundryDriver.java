@@ -28,6 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class AbstractApplicationCloudFoundryDriver
         extends AbstractSoftwareProcessCloudFoundryDriver
@@ -103,12 +106,7 @@ public abstract class AbstractApplicationCloudFoundryDriver
         getClient().startApplication(getApplicationName());
     }
 
-    public void postLaunch() {
-        CloudApplication application = getClient().getApplication(getApplicationName());
-        String domainUri = application.getUris().get(0);
-        getEntity().setAttribute(Attributes.MAIN_URI, URI.create(domainUri));
-        entity.setAttribute(WebAppService.ROOT_URL,  domainUri);
-    }
+    public void postLaunch() {}
 
     @Override
     public void restart() {
