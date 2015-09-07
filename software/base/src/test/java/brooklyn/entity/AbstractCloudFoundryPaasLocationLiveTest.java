@@ -36,8 +36,6 @@ public abstract class AbstractCloudFoundryPaasLocationLiveTest extends BrooklynA
     protected LocalManagementContext managementContext;
     protected CloudFoundryPaasLocation cloudFoundryPaasLocation;
     protected final String LOCATION_SPEC_NAME = "cloudfoundry-instance";
-    protected final String APPLICATION_NAME = "test-brooklyn-application-" + UUID.randomUUID()
-            .toString().substring(0, 8);
 
     @BeforeMethod
     public void setUp() throws Exception {

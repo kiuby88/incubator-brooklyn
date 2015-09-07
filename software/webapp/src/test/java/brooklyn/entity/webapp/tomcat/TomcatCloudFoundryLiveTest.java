@@ -32,9 +32,9 @@ import com.google.common.collect.ImmutableList;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
-
 
 @Test(groups = {"Live"})
 public class TomcatCloudFoundryLiveTest extends AbstractCloudFoundryPaasLocationLiveTest {
@@ -87,6 +87,28 @@ public class TomcatCloudFoundryLiveTest extends AbstractCloudFoundryPaasLocation
                     assertEquals(server.getAttribute(TomcatServer.SERVICE_STATE_ACTUAL),
                             Lifecycle.ON_FIRE);
                 }
+            }
+        });
+    }
+
+    protected void stopApplicationTest() throws Exception {
+        final TomcatServer server = app.
+                createAndManageChild(EntitySpec.create(TomcatServer.class)
+                        .configure("wars.root", APPLICATION_ARTIFACT_URL)
+                        .location(cloudFoundryPaasLocation));
+
+        app.start(ImmutableList.of(cloudFoundryPaasLocation));
+
+        Asserts.succeedsEventually(new Runnable() {
+            public void run() {
+                assertTrue(server.getAttribute(Startable.SERVICE_UP));
+
+                app.stop();
+                assertEquals(server.getAttribute(TomcatServer
+                        .SERVICE_STATE_ACTUAL), Lifecycle.STOPPED);
+                assertFalse(server.getAttribute(Startable.SERVICE_UP));
+                assertFalse(server.getAttribute(TomcatServer
+                        .SERVICE_PROCESS_IS_RUNNING));
             }
         });
     }

@@ -234,7 +234,9 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
      * @see #connectServiceUpIsRunning()
      */
     protected void disconnectServiceUpIsRunning() {
-        if (serviceProcessIsRunning != null) serviceProcessIsRunning.stop();
+        if (serviceProcessIsRunning != null) {
+            serviceProcessIsRunning.stop();
+        }
         // set null so the SERVICE_UP enricher runs (possibly removing it), then remove so everything is removed
         // TODO race because the is-running check may be mid-task
         setAttribute(SERVICE_PROCESS_IS_RUNNING, null);

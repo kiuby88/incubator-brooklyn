@@ -115,6 +115,7 @@ public abstract class AbstractApplicationCloudFoundryDriver
 
     @Override
     public void stop() {
+        super.stop();
         getClient().stopApplication(getApplicationName());
         deleteApplication();
     }

@@ -19,15 +19,19 @@
 package brooklyn.entity.basic;
 
 import brooklyn.entity.software.lifecycle.AbstractLifecycleEffectorTasks;
+import brooklyn.entity.trait.StartableMethods;
 import brooklyn.location.Location;
 import brooklyn.location.paas.PaasLocation;
+import brooklyn.management.TaskAdaptable;
 import brooklyn.util.config.ConfigBag;
 import brooklyn.util.exceptions.Exceptions;
+import brooklyn.util.task.DynamicTasks;
 import com.google.common.annotations.Beta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.concurrent.Callable;
 
 @Beta
 public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
@@ -44,7 +48,7 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
         ServiceStateLogic.setExpectedState(entity(), Lifecycle.STARTING);
         try {
 
-            PaasLocation location = (PaasLocation)entity().getLocation(locations);
+            PaasLocation location = (PaasLocation) entity().getLocation(locations);
 
             preStartProcess(location);
             startProcess();
@@ -59,7 +63,7 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
     }
 
     //TODO: This method could be uploaded to the super class.
-    protected void preStartProcess(PaasLocation location){
+    protected void preStartProcess(PaasLocation location) {
         createDriver(location);
         entity().preStart();
     }
@@ -76,27 +80,26 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
         }
     }
 
-    protected void startProcess(){
+    protected void startProcess() {
         entity().getDriver().start();
     }
 
-    protected void postStartProcess(){
+    protected void postStartProcess() {
         entity().postDriverStart();
-        if(entity().connectedSensors){
-            log.debug("skipping connecting sensors for "+entity()+" " +
+        if (entity().connectedSensors) {
+            log.debug("skipping connecting sensors for " + entity() + " " +
                     "in driver-tasks postStartCustom because already connected (e.g. restarting)");
         } else {
-            log.debug("connecting sensors for "+entity()+" in driver-tasks postStartCustom because already connected (e.g. restarting)");
+            log.debug("connecting sensors for " + entity() + " in driver-tasks postStartCustom because already connected (e.g. restarting)");
             entity().connectSensors();
         }
         entity().waitForServiceUp();
         entity().postStart();
-
     }
 
     /**
      * Default restart implementation for an entity.
-     * <p>
+     * <p/>
      * Stops processes if possible, then starts the entity again.
      */
     @Override
@@ -106,7 +109,86 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
 
     @Override
     public void stop(ConfigBag parameters) {
-        //TODO
+
+        log.info("Stopping {} in {}", entity(), entity().getLocations());
+        try {
+
+            DynamicTasks.queue("pre-stop", new Callable<String>() {
+                public String call() {
+                    if (entity().getAttribute(SoftwareProcess.SERVICE_STATE_ACTUAL) == Lifecycle.STOPPED) {
+                        log.debug("Skipping stop of entity " + entity() + " when already stopped");
+                        return "Already stopped";
+                    }
+                    ServiceStateLogic.setExpectedState(entity(), Lifecycle.STOPPING);
+                    entity().setAttribute(SoftwareProcess.SERVICE_UP, false);
+                    preStopProcess();
+                    return null;
+                }
+            });
+
+            stopProcess();
+            postStopProcess();
+            entity().setAttribute(SoftwareProcess.SERVICE_UP, false);
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.STOPPED);
+        } catch (Throwable t) {
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.ON_FIRE);
+            log.error("Error error starting entity {}", entity());
+            throw Exceptions.propagate(t);
+        }
+    }
+
+    protected void preStopProcess() {
+        entity().preStop();
+    }
+
+
+    protected String stopProcess() {
+        //TODO: This method was copied from SoftwareProcessDriverLifecycleEffectorTasks. It should
+        //be moved to any super class
+        String result;
+
+        SoftwareProcess.ChildStartableMode mode = getChildrenStartableModeEffective();
+        TaskAdaptable<?> children = null;
+        Exception childException = null;
+
+        if (!mode.isDisabled) {
+            children = StartableMethods.stoppingChildren(entity());
+
+            if (mode.isBackground || !mode.isLate) Entities.submit(entity(), children);
+            else {
+                DynamicTasks.queue(children);
+                try {
+                    DynamicTasks.waitForLast();
+                } catch (Exception e) {
+                    childException = e;
+                }
+            }
+        }
+
+        if (entity().getDriver() != null) {
+            entity().getDriver().stop();
+            result = "Driver stop completed";
+        } else {
+            result = "No driver (nothing to do here)";
+        }
+
+        if (!mode.isDisabled && !mode.isBackground) {
+            try {
+                children.asTask().get();
+            } catch (Exception e) {
+                childException = e;
+                log.debug("Error stopping children; continuing and will rethrow if no other errors", e);
+            }
+        }
+
+        if (childException != null)
+            throw new IllegalStateException(result + "; but error stopping child: " + childException, childException);
+
+        return result;
+    }
+
+    protected void postStopProcess() {
+        entity().postStop();
     }
 
 }

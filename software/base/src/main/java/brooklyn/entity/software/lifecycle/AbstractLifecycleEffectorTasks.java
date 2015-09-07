@@ -167,6 +167,14 @@ public abstract class AbstractLifecycleEffectorTasks implements LifecycleEffecto
         return Iterables.getOnlyElement(locations);
     }
 
+    /** returns how children startables should be handled (reporting none for efficiency if there are no children) */
+    protected SoftwareProcess.ChildStartableMode getChildrenStartableModeEffective() {
+        if (entity().getChildren().isEmpty()) return SoftwareProcess.ChildStartableMode.NONE;
+        SoftwareProcess.ChildStartableMode result = entity().getConfig(SoftwareProcess.CHILDREN_STARTABLE_MODE);
+        if (result!=null) return result;
+        return SoftwareProcess.ChildStartableMode.NONE;
+    }
+
     /** @deprecated since 0.7.0 use {@link #restart(ConfigBag)} */
     @Deprecated
     public void restart() {
